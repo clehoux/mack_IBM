@@ -1,0 +1,26 @@
+[general]
+creator=R package 'raster'
+created=2025-10-27 10:01:35
+[data]
+datatype=FLT4S
+byteorder=little
+nbands=53
+bandorder=BIL
+minvalue=0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0:0
+maxvalue=280.103319440569:279.973323277065:279.469408307757:279.165405273438:279.095803397042:278.728554861886:278.707863943917:278.619567871094:277.903930664062:278.326507568359:278.364802769252:278.132847377232:279.307686941964:279.13075038365:279.526506696429:280.827052525112:282.742257254464:282.137037004743:283.355769566127:283.312748500279:283.554037911551:284.27190726144:285.241703578404:287.868905203683:288.741032191685:289.850455147879:290.979993547712:291.878566196987:293.395712716239:294.299992152623:294.545710972377:295.672847202846:296.189998081752:294.661424909319:293.452375139509:292.466452462333:292.507786342076:292.100960867746:292.756962367467:291.108564104353:289.844338553292:289.155705043248:288.915710449219:287.679016113281:286.856637137277:286.669804164342:284.798566545759:284.357134137835:285.154689243862:283.254259381975:282.433833530971:282.893384660993:281.974975585938
+nodatavalue=-3.4e+38
+[legend]
+legendtype=
+values=
+color=
+[description]
+layername=index_1:index_2:index_3:index_4:index_5:index_6:index_7:index_8:index_9:index_10:index_11:index_12:index_13:index_14:index_15:index_16:index_17:index_18:index_19:index_20:index_21:index_22:index_23:index_24:index_25:index_26:index_27:index_28:index_29:index_30:index_31:index_32:index_33:index_34:index_35:index_36:index_37:index_38:index_39:index_40:index_41:index_42:index_43:index_44:index_45:index_46:index_47:index_48:index_49:index_50:index_51:index_52:index_53
+[georeference]
+nrows=92
+ncols=103
+xmin=-898111.045866647
+ymin=-1036578.81119243
+xmax=2191888.95413335
+ymax=1723421.18880757
+projection=+proj=lcc +lat_0=44 +lon_0=-68.5 +lat_1=60 +lat_2=46 +x_0=0 +y_0=0 +datum=NAD83 +units=m +no_defs
+wkt=PROJCRS["NAD83 / Quebec Lambert",    BASEGEOGCRS["NAD83",        DATUM["North American Datum 1983",            ELLIPSOID["GRS 1980",6378137,298.257222101,                LENGTHUNIT["metre",1]]],        PRIMEM["Greenwich",0,            ANGLEUNIT["degree",0.0174532925199433]],        ID["EPSG",4269]],    CONVERSION["Quebec Lambert Projection",        METHOD["Lambert Conic Conformal (2SP)",            ID["EPSG",9802]],        PARAMETER["Latitude of false origin",44,            ANGLEUNIT["degree",0.0174532925199433],            ID["EPSG",8821]],        PARAMETER["Longitude of false origin",-68.5,            ANGLEUNIT["degree",0.0174532925199433],            ID["EPSG",8822]],        PARAMETER["Latitude of 1st standard parallel",60,            ANGLEUNIT["degree",0.0174532925199433],            ID["EPSG",8823]],        PARAMETER["Latitude of 2nd standard parallel",46,            ANGLEUNIT["degree",0.0174532925199433],            ID["EPSG",8824]],        PARAMETER["Easting at false origin",0,            LENGTHUNIT["metre",1],            ID["EPSG",8826]],        PARAMETER["Northing at false origin",0,            LENGTHUNIT["metre",1],            ID["EPSG",8827]]],    CS[Cartesian,2],        AXIS["easting (X)",east,            ORDER[1],            LENGTHUNIT["metre",1]],        AXIS["northing (Y)",north,            ORDER[2],            LENGTHUNIT["metre",1]],    USAGE[        SCOPE["Topographic mapping (medium and small scale)."],        AREA["Canada - Quebec."],        BBOX[44.99,-79.85,62.62,-57.1]],    ID["EPSG",32198]]

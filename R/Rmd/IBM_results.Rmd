@@ -1,0 +1,239 @@
+---
+title: "IBM_results"
+author: "Caroline Lehoux"
+date: "`r Sys.Date()`"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float:
+            collapsed: FALSE
+        code_folding: hide
+
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = T, collapse = T, fig.align = "center", fig.width = 8, fig.height = 4, message=F, warning=F)
+knitr::opts_knit$set(root.dir = "../../")
+
+```
+
+```{r setup2, include=T}
+#load package
+source("R/utils/loadpackages.R")
+
+#load utilities code
+source("R/utils/basemap.R")
+source("R/utils/movement.R") # probability of moving based on temperature (depth)
+source("R/utils/parameters.R")
+
+
+years=2015:2016
+year.name = ifelse(length(years) > 1 , paste0(min(years),"_", max(years)), years)
+
+Sim <- load(paste0("results/Simrep_",year.name,".RData"))
+Sim
+#gives the names of the objects
+runparams=params
+model_res =runparams$model_res[[1]]
+step.name<- ifelse(runparams$time_step[[1]] ==7, "7_days_", "daily_")
+
+key.nafo<- readRDS(paste0("data/polygons/",model_res,"km_", "keynafo.RDS"))
+param=paramInit(runparams$time_step[[1]])
+
+#netbasemap
+necw<- readRDS(paste0(paste0("data/polygons/netlogo_basemap",model_res,"_km.RDS")))
+newbasemap<- ggplot() + geom_sf(data=necw,fill="grey90", col="bisque4") +
+  basetheme  + 
+  theme(axis.text=element_blank(), axis.title=element_blank())
+
+```
+
+# Summary 
+
+```{r fig, include=T}
+dfpop<- popSim_all %>%
+      mutate(week = lubridate::week(date))
+
+
+ggplot(data=dfpop, aes(x=week, y=length, col=as.factor(floor(age)),, shape=as.factor(replicate_id))) + geom_point() +scale_color_viridis_d(name="Age") +
+  scale_shape_manual(values=c(1,19))
+
+ggplot(data=dfpop, aes(x=week, y=weight, col=as.factor(floor(age)))) + geom_point() +scale_color_viridis_d(name="Age")
+
+dfdyn<- fishDyn_all %>%
+      mutate(week = lubridate::week(date))
+
+
+ggplot(data=dfdyn , aes(x=COG_x, y=COG_y, col=week, shape=as.factor(replicate))) + 
+  geom_point() +scale_color_viridis_c() +facet_wrap(~fage)+scale_shape_manual(values=c(1,19))
+
+ggplot(data=dfdyn %>%  dplyr::select(-c(`1F` :`5Z`, `NA`)) %>% pivot_longer(3:7), aes(x=week, y=value, col=as.factor(fage), shape=as.factor(replicate))) +
+  geom_point() +scale_color_viridis_d(name="Age") +facet_wrap(~name, scales="free")+scale_shape_manual(values=c(1,19))
+
+dfdyn %>%  dplyr::select(c(`1F` :`5Z`, `NA`), year, fage, week, replicate) %>% 
+  pivot_longer(c(`1F` :`5Z`, `NA`)) %>% 
+  mutate(region= if_else(grepl(name, pattern="2")| name=="1F"|grepl(name, pattern="3"), "eNL",
+                         if_else(name=="4R", "wNL",
+                                 if_else(name=="4S", "nGSL",
+                                         if_else(name=="4T", "sGSL", 
+                                                 if_else(name %in% c("4V","4W","4X") |grepl(name, pattern="5"),"SS", NA)))))) %>% 
+  ggplot(aes(x=week, y=value, fill=region)) +
+  geom_bar(stat="identity") +scale_fill_viridis_d(name="region") +facet_wrap(~fage, scales="free") + 
+  ylab("Proportion of SuperIndividuals")
+```
+
+# Eggs
+
+```{r fig.eggs, include=T}
+
+egg.df<- dfpop %>%  filter(age==0)
+
+
+egg_res<- left_join(egg.df, key.nafo) %>% 
+  mutate(region= if_else(grepl(UnitArea, pattern="2")| UnitArea=="1F"|grepl(UnitArea, pattern="3"), "eNL",
+                         if_else(UnitArea=="4R", "wNL",
+                                 if_else(UnitArea=="4S", "nGSL",
+                                         if_else(UnitArea=="4T", "sGSL", "SS"))))) %>% group_by(region, week, replicate_id) %>%  summarize(WEP=sum(N))  
+
+if(nrow(egg_res) > 0){
+Sys.setlocale("LC_ALL", "English")
+pe<- ggplot(egg_res, aes(x=week, y=WEP,fill=region)) + geom_bar(stat="identity", position="stack") + ylab("Weekly egg production") +
+  scale_fill_viridis_d(name="") + theme(axis.text.x=element_text(angle=45, vjust=0.5, hjust=0.5)) + facet_wrap(~replicate_id)
+
+
+  dfdate<- dfpop %>%  filter(year == years[[1]]) %>%  mutate(date=format(date, '%B-%d'))%>%  dplyr::select(date, week) %>%  distinct() %>% arrange(week) 
+w<- dfdate$week [c(TRUE, FALSE)]
+
+ pe + scale_x_continuous(name="Week", breaks=w, labels=dfdate$date[c(TRUE, FALSE)])  
+
+
+egg_res %>%  ungroup() %>%  summarize(TEP=sum(WEP))
+
+ggplot(egg_res, aes(x=as.factor(replicate_id),y=WEP,fill=region)) + geom_bar(stat="identity", position="stack") + ylab("Total egg production") +
+  scale_fill_viridis_d(name="", na.value="grey") 
+}
+```
+
+# PATHS
+
+```{r ggmap_path, include=T}
+  np1 <-  newbasemap +
+        geom_sf(data=necw,fill="bisque", col="bisque4") +
+    geom_path(data=dfpop %>% filter(who < 100),aes(x=xcor, y=ycor, group=who, color=as.factor(who)))+#, linewidth=N))+
+    scale_color_viridis_d(guide="none") +facet_wrap(~replicate_id)# +
+    #coord_sf(xlim=c(85,243), ylim=c(70,248))
+ np1
+ 
+ egg.sf <-  egg.df %>%  as.data.frame() %>%  st_as_sf(coords=c("xcor", "ycor"))
+ e1 <-  newbasemap +
+      geom_sf(data=necw,fill="bisque", col="bisque4") +
+    geom_sf(data=egg.sf, aes(color=week, size=N, shape=as.factor(replicate_id)))+#, linewidth=N))+
+    scale_color_viridis_c()+scale_shape_manual(values=c(1,19))# +
+    #coord_sf(xlim=c(85,243), ylim=c(70,248))
+ e1
+ 
+```
+
+
+# MAPS
+
+## 15 may
+
+```{r sett, include=T}
+t= week(ymd(paste0(years, "-05-15")))[[1]]
+```
+
+```{r ggmap, include=T}
+for(f in years){
+seascape.s <- readRDS(paste0("data/seascape/seascape_",model_res,"km_",step.name, f, ".RDS"))
+lyr<- length(seascape.s)
+ fish.sf<-  dfpop %>%  filter(year==f, week==t) %>%  st_as_sf(coords=c("xcor", "ycor"))
+ 
+  seascape2 <- c(
+    lapply(seascape.s[-c((lyr-1) : lyr)], function(l) as(l[[t]], "Raster")),
+    seascape.s[(lyr-1) : lyr]
+  ) # adding bathy
+  seascape2 <- stack(x = seascape2)
+   seaworld <- raster2world(seascape2)
+  
+  temp.plot<-  world2raster(seaworld[[1]]) %>%  st_as_stars() 
+  zoo.plot<-  world2raster(seaworld[[3]]) %>%  st_as_stars()
+  
+  np1 <-  newbasemap + geom_stars(data=temp.plot) + 
+    scale_fill_viridis_c(name="SST (K)",option="turbo", limits=c(270,300), na.value="transparent") +
+    geom_sf(data=necw,fill="bisque", col="bisque4") +
+    geom_sf(data=fish.sf, aes(color=as.factor(floor(age)), shape=as.factor(replicate_id)), size=2)+
+    scale_color_viridis_d(name="Age")+scale_shape_manual(values=c(1,19)) #+
+   # coord_sf(xlim=c(85,243), ylim=c(70,248))
+  np2 <-  newbasemap + geom_stars(data=zoo.plot) + 
+    scale_fill_viridis_c(name="Zoopl. (mg)",option="turbo", trans="log10p1", na.value="transparent", breaks=c(0,10,100,1000,10000)) +
+    geom_sf(data=necw,fill="bisque", col="bisque4") +
+    geom_sf(data=fish.sf, aes(color=as.factor(floor(age)), shape=as.factor(replicate_id)), size=2)+
+    scale_color_viridis_d(name="Age")+scale_shape_manual(values=c(1,19))#+
+    #coord_sf(xlim=c(85,243), ylim=c(70,248))   
+  p1<- ggarrange(np1,np2, ncol=2, align="hv")
+p2<- annotate_figure(p1, top=paste0("Week = ", t))
+print(p2)  
+}
+```
+
+
+## 21 June
+
+```{r sett2, include=T}
+t= week(ymd(paste0(years, "-06-21")))
+```
+
+```{r ggmap2, ref.label="ggmap", include=T}
+ 
+```
+
+## 15 July
+
+```{r sett3, include=T}
+t= week(ymd(paste0(years, "-07-15")))
+```
+
+```{r ggmap3, ref.label="ggmap", include=T}
+  
+```
+
+
+## 15 August
+
+```{r sett5, include=T}
+t= week(ymd(paste0(years, "-08-15")))
+```
+
+```{r ggmap5, ref.label="ggmap", include=T}
+  
+```
+
+
+## 15 October
+
+```{r sett4, include=T}
+t= week(ymd(paste0(years, "-10-15")))
+```
+
+```{r ggmap4, ref.label="ggmap", include=T}
+  
+```
+
+
+## 15 December
+
+```{r sett6, include=T}
+t= week(ymd(paste0(years, "-12-15")))
+```
+
+```{r ggmap6, ref.label="ggmap", include=T}
+  
+```
+
+```{r}
+knitr::knit_exit()
+```
+

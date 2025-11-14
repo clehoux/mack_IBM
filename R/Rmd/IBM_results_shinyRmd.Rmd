@@ -1,0 +1,126 @@
+---
+title: "IBM_results"
+author: "Caroline Lehoux"
+date: "`r Sys.Date()`"
+output:
+     html_document:
+        toc: true
+        toc_depth: 3
+        toc_float:
+            collapsed: FALSE
+        code_folding: hide
+runtime: shiny
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+library(shiny)
+opts_chunk$set(echo = T, collapse = T, fig.align = "center", fig.width = 12, fig.height = 12, message=F, warning=F)
+knitr::opts_knit$set(root.dir = "../../")
+
+```
+
+```{r setup2, include=T}
+#load package
+source("R/utils/loadpackages.R")
+#load utilities code
+source("R/utils/basemap.R")
+source("R/utils/movement.R") # probability of moving based on temperature (depth)
+
+time_step=7
+source("R/utils/parameters.R")
+param=paramInit(7)
+```
+
+```{r echo=F}
+shinyApp(
+
+  ui = fluidPage(
+    sliderInput("t", "Week:",
+                min=1, max=52, step=1, value=21),
+     sliderInput("my.year", "Year:",
+                min=1999, max=2024, step=1, value=2019),
+    plotOutput("mapIBM", width="800px", height="800px")
+  ),
+
+  server = function(input, output, session) {
+    timer = reactive({ 
+                   start_date <- ymd(paste0(input$my.year, "-01-01")) ## for now use the same start date as data otherwise subset of raster not working
+end_date <- ymd(paste0(input$my.year, "-12-30")) #
+
+seq(start_date, end_date, time_step)
+}  )
+    
+    
+     seaworld = reactive({
+ 
+seascape <- readRDS(paste0("data/seascape/seascape_", input$my.year, ".RDS"))
+seascape.step = seascape[[2]]  
+       lyr<- length(seascape.step)
+ 
+  seascape2 <- c(
+    lapply(seascape.step[-c((lyr-1) : lyr)], function(l) as(l[[input$t]], "Raster")),
+    seascape.step[(lyr-1) : lyr]
+  ) # adding bathy
+  seascape2 <- raster::stack(x = seascape2)
+  tempCue<- calc(seascape2[[1]],fun=function(x){dnorm(x-273, mean=11, sd=2)/0.2})
+  names(tempCue) <- "tempCue"
+  foodCue<- raster::overlay(seascape2[[1:3]], fun=function(x,y,z){param$Cmax * (1 + (y / 24) * exp((-param$Ea / param$boltz) * ((1 / (x)) - (1 / param$Tref))) *      z / (param$h + z ))})
+ #foodCue<- foodCue *(275/rowFromCell(foodCue, cell=1:84975))
+  names(foodCue) <- "foodCue"
+  
+  
+  seascape2 <- stack(seascape2, tempCue, foodCue)
+   raster2world(seascape2)
+          })
+      
+      
+    fish.sf = reactive({
+    popSim<- readRDS(paste0("results/popSim_", input$my.year, "_v1.RDS"))
+    popSim[[input$t]]@.Data %>%  as.data.frame() %>%  st_as_sf(coords=c("xcor", "ycor")) %>% 
+      mutate(fage=floor(age))# age in january
+
+          })
+      
+   output$mapIBM = renderPlot({
+  temp.plot<-  world2spatRast(seaworld()[[1]]) %>%  st_as_stars() 
+  zoo.plot<-  world2spatRast(seaworld()[[3]]) %>%  st_as_stars()
+  tempcue.plot<-  world2spatRast(seaworld()[[6]]) %>%  st_as_stars() 
+  foodcue.plot<-  world2spatRast(seaworld()[[7]]) %>%  st_as_stars()
+  
+  np1 <-  newbasemap + geom_stars(data=temp.plot) + 
+    scale_fill_viridis_c(name="SST (K)",option="turbo", limits=c(270,300), na.value="transparent") +
+    geom_sf(data=necw,fill="bisque", col="bisque4") +
+   geom_sf(data=fish.sf(), aes(color=as.factor(fage), size=N), shape=1)+
+    scale_size_continuous(transform="log10p1", limits=c(0,1e6), breaks=c(0,100,1000,10000,100000))+
+    scale_color_viridis_d(name="Age") +
+    coord_sf(xlim=c(85,243), ylim=c(70,248))
+  np2 <-  newbasemap + geom_stars(data=zoo.plot) + 
+    scale_fill_viridis_c(name="Zoopl. (mg)",option="turbo", trans="log10p1", na.value="transparent", breaks=c(0,10,100,1000,10000)) +
+    geom_sf(data=necw,fill="bisque", col="bisque4") +
+   geom_sf(data=fish.sf() %>%  filter(age==0), aes(size=N), shape=1)+
+    scale_color_viridis_d(name="Age")+
+    coord_sf(xlim=c(85,243), ylim=c(70,248)) 
+  
+  np3 <-  newbasemap + geom_stars(data=tempcue.plot) + 
+    scale_fill_viridis_c(name="TempCue",option="turbo", na.value="transparent") +
+    geom_sf(data=necw,fill="bisque", col="bisque4") +
+   geom_sf(data=fish.sf(), aes(color=as.factor(fage), size=N), shape=1)+
+    scale_size_continuous(transform="log10p1", limits=c(0,1e6), breaks=c(0,100,1000,10000,100000))+
+    scale_color_viridis_d(name="Age") +
+    coord_sf(xlim=c(85,243), ylim=c(70,248))
+  np4 <-  newbasemap + geom_stars(data=foodcue.plot) + 
+    scale_fill_viridis_c(name="FeedCue",option="turbo", na.value="transparent") +
+    geom_sf(data=necw,fill="bisque", col="bisque4") +
+   geom_sf(data=fish.sf() %>%  filter(age==0), aes(size=N), shape=1)+
+    scale_color_viridis_d(name="Age")+
+  scale_size(guide="none")+
+    coord_sf(xlim=c(85,243), ylim=c(70,248))   
+  
+  p1<- ggarrange(np1,np2, np3, np4, ncol=2, nrow=2, align="hv")
+p2<- annotate_figure(p1, top=paste0("Week = ", input$t, " Date = ", paste0(timer()[[input$t]])))
+print(p2)   
+    })
+  }, options(height="1000px")
+)
+```
