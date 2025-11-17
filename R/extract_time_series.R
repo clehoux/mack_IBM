@@ -8,13 +8,15 @@ load(fs[1]) # for runparams
 fishDyn_combined <- map_df(fs, ~{
   load(.x)
   fishDyn_all %>%
-    mutate(week = lubridate::week(date)) %>%  filter(week <= 52)
+    mutate(week = lubridate::week(date),
+           year=lubridate::year(date)) %>%  filter(week <= 52)
 })
 
 popSim_combined <- map_df(fs, ~{
   load(.x)
   popSim_all%>%
-    mutate(week = lubridate::week(date)) %>%  filter(week <= 52)
+    mutate(week = lubridate::week(date),
+           year=lubridate::year(date)) %>%  filter(week <= 52)
 })
 
 
@@ -64,17 +66,17 @@ egg_peak <-   egg.df %>%  ungroup() %>%  group_by(date, year, replicate_id) %>% 
   r_newres2= r
   res(r_newres2) <- model_res *1000
   
+  url <- "https://github.com/iml-mackerel/03.0_egg-index/blob/main/csv/lookup_station_egg.txt"
+  raw_url <- gsub("/blob/", "/raw/", url)
+  look <- read.delim(raw_url)
   
-  look<-  read.delim("C:/LEHOUX/Maquereau/iml-mackerel/03.0_egg-index/data/lookup_station_egg.txt")
-  egg_sf<- look %>%  dplyr::select(station,latitude, longitude) %>%  
+   egg_sf<- look %>%  dplyr::select(station,latitude, longitude) %>%  
     st_as_sf(coords=c("longitude", "latitude"), crs=4326) %>%  st_transform(st_crs(r_newres2))
 
  egg_raster <- terra::rasterize(vect(egg_sf) , r_newres2, 
                                 field="station", fun="first")
  egg_raster_fil <- terra::focal(egg_raster, w=3, fun="modal", na.rm=TRUE, 
                                    na.policy="only")
-
-
 
 egg_raster_fil
 nrow(unique(egg_raster_fil))# 9.4 and 9.5 are in the same cell.
@@ -88,7 +90,10 @@ virt1<- egg.df %>%  filter(!is.na(station)) %>%  group_by(year, replicate_id) %>
 ggplot(virt1, aes(x=as.factor(year), y=TEP)) +geom_boxplot()
 
 #our survey dates 
-survd<- read.delim("C:/LEHOUX/Maquereau/iml-mackerel/03.0_egg-index/results/2024/Survey_dates.txt")
+url <- "https://github.com/iml-mackerel/03.0_egg-index/blob/main/csv/Survey_dates.txt"
+raw_url <- gsub("/blob/", "/raw/", url)
+survd <- read.delim(raw_url)
+
 survw= survd %>%  mutate(survey.week= week(as.Date(paste0(year,"-", gsub(date.med, pattern="'", replacement=""))))) %>%  dplyr::select(year, survey.week)
 check.eggs<- left_join(egg.df %>%  filter(!is.na(station)), survw) %>%  filter(week==survey.week) %>% 
   group_by(year, replicate_id, week) %>%  summarize(TEP_survey=sum(N)) 
@@ -107,8 +112,9 @@ virt1b %>% ggplot(aes(x=TEP/10^9, y=virtual.TEP/10^9, col=year)) +geom_point() +
                                         size = 3)
 
 #TEP eval
-TEP.eval<- read.csv("C:/LEHOUX/Maquereau/iml-mackerel/03.0_egg-index/csv/2024/TEP_2024.csv")
-
+url <- "https://github.com/iml-mackerel/03.0_egg-index/blob/main/csv/2024/TEP_2024.csv"
+  raw_url <- gsub("/blob/", "/raw/", url)
+  TEP.eval <- read.csv(raw_url)
 allTEP<- left_join(TEP.eval %>%  rename(TEP.eval=TEP), 
           virt1b %>% group_by(year) %>% 
             summarize(TEP=mean(TEP),
@@ -206,7 +212,7 @@ s52.date= c("2025-05-15",
             "2025-10-10")
 s52.week = week(as.Date(s52.date))
 
-ve<- read.delim("C:/LEHOUX/Maquereau/Recherche/mack_IBM/data/virtual_ecologist_S52.txt")
+ve<- read.delim("data/virtual_ecologist_S52.txt")
 
 sampled_data <- fish_region %>% filter(age >=1) %>% 
   inner_join(ve, by = c('region', 'week')) %>%

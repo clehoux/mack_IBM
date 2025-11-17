@@ -3,7 +3,6 @@ source("R/utils/loadpackages.R")
 source("R/MACKNWAN_ABM.R")
 source("R/extract_time_series.R")
 
-###test hors rslurm
 
 # Configuration
 nReplicate <- 3
@@ -13,13 +12,13 @@ if(dir.exists(paste0("results/", simu.name))){stop("folder already exists")
   }else{
 dir.create(paste0("results/", simu.name))
     dir.create(paste0("results/", simu.name, "/stats/"))
-for(y in years){
-n_workers <- nReplicate * length(y)  # 1 worker par réplicat/year # 1.2 Go par workers. donc on peut peut-être aller juqu'à 10? sur mon portable
+
+n_workers <- nReplicate * length(years)# 1 worker par réplicat/year # 1.2 Go par workers. donc on peut peut-être aller juqu'à 10? sur mon portable
 # 1year =1.6 hours. 
 # Paramètres
 runparams <- expand.grid(
   replicate_id = seq_len(nReplicate),
-  my.year = y,
+  my.year = years,
   model_res = 30,
   time_step = 7,
   barrier = T,
@@ -64,15 +63,15 @@ popSim_all <- map_df(
   .id = "sim_id"
 )
 # Sauvegarder les résultats
-year.name = ifelse(length(y) > 1 , paste0(min(y),"_", max(y)), y)
+year.name = ifelse(length(years) > 1 , paste0(min(years),"_", max(years)), years)
 
-##########TO DO a folder by parameter combination#############
+
 save(fishDyn_all, popSim_all, file=paste0("results/",simu.name,"/Simrep_",year.name,".RData"))
 if(!file.exists(paste0("results/",simu.name,"/runparams.RData"))) save(runparams, file=paste0("results/",simu.name,"/runparams.RData"))
 
 plan(sequential)
 #1.5 hours with  barrier
-}
+
 extract_results_y(sim.name=simu.name)
 }
 
