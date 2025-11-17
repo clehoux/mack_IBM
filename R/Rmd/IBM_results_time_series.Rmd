@@ -1,0 +1,157 @@
+---
+title: "IBM_results extraction of time series"
+author: "Caroline Lehoux"
+date: "`r Sys.Date()`"
+params:
+  simu.name: "simu7"
+output:
+    html_document:
+        toc: true
+        toc_depth: 3
+        toc_float:
+            collapsed: FALSE
+        code_folding: hide
+
+---
+
+```{r setup, include=FALSE}
+library(knitr)
+opts_chunk$set(echo = T, collapse = T, fig.align = "center", fig.width = 8, fig.height = 4, message=F, warning=F)
+knitr::opts_knit$set(root.dir = "../../")
+
+```
+
+```{r setup2, include=T}
+#load package
+source("R/utils/loadpackages.R")
+
+#load utilities code
+source("R/utils/basemap.R")
+source("R/utils/movement.R") # probability of moving based on temperature (depth)
+source("R/utils/parameters.R")
+
+lapply(list.files(paste0("results/",params$simu.name,"/stats/"), full.names = TRUE), load, envir = .GlobalEnv)
+load(paste0("results/",params$simu.name,"/runparams.RData"))
+model_res =runparams$model_res[[1]]
+
+#netbasemap
+necw<- readRDS(paste0(paste0("data/polygons/netlogo_basemap",model_res,"_km.RDS")))
+newbasemap<- ggplot() + geom_sf(data=necw,fill="grey90", col="bisque4") +
+  basetheme  + 
+  theme(axis.text=element_blank(), axis.title=element_blank())
+
+```
+
+# Eggs
+
+```{r fig.eggs1, include=T, fig.width=8, fig.height=4}
+egg_total_region %>% ggplot(aes(fill=region, x=year,  y=TEP*10^-9))+
+  geom_bar(stat="identity") + 
+  facet_wrap(~replicate_id) +
+  scale_fill_viridis_d(name="", na.value = "grey") +
+  scale_x_continuous(name="Year")
+```
+
+```{r fig.eggs2, include=T, fig.width=8, fig.height=5}
+load("C:/LEHOUX/Maquereau/iml-mackerel/03.0_egg-index/results/2024/spawning/predicted_propspawn_doy2024.RData")
+spawn<- read.delim("C:/LEHOUX/Maquereau/iml-mackerel/03.0_egg-index/results/2024/spawning/table_nlmeAR_2024.txt")
+spawn<-spawn %>%  dplyr::select(year, xmid, doymin70, doymax70) %>%  rename(doy=xmid) %>%  filter(year>=1999)
+
+assess<- nlme.fixpredsAR1 %>% dplyr::select(year, doy, prob) %>%  filter(year>=1999)
+  
+  
+WEPmean<- egg_weekly %>%  mutate(date=as.Date(paste0(year, "-W", 
+                                   sprintf("%02d", week), "-1"),
+                            format = "%Y-W%W-%w"),
+                       doy=yday(date)) %>%  group_by(year, doy) %>%  
+    summarize(WEP=mean(WEP)) 
+
+  ggplot()+
+  geom_point(data=WEPmean,aes(x= doy,  y=WEP*10^-9)) +
+  geom_smooth(data=WEPmean,aes(x= doy,  y=WEP*10^-9)) +
+  geom_vline(data=spawn, aes(xintercept = doy), col="red")+
+  geom_rect(data=spawn, aes(xmin=doymin70, xmax=doymax70, ymin=-Inf, ymax=Inf), col="red", fill="grey", alpha=0.5)+
+  facet_wrap(~year, scales="free_y", ncol=5) +coord_cartesian(xlim=c(120,250))
+
+```
+
+```{r fig.eggs3, include=T}
+egg_total  %>%  mutate(TEP=TEP/10^9)%>% ggplot(aes(x= as.factor(year), y=TEP))+geom_boxplot() +
+  scale_x_discrete(name="Year", breaks=seq(2000,2022,2))
+
+```
+
+```{r fig.eggs4, include=T, fig.width=8, fig.height=5}
+egg.sf <-  egg.df %>%  as.data.frame() %>%  st_as_sf(coords=c("xcor", "ycor")) %>% 
+  filter(year %in% c(2001, 2010, 2022))
+ e1 <-  newbasemap +
+      geom_sf(data=necw,fill="bisque", col="bisque4") +
+    geom_sf(data=egg.sf, aes(color=week, size=N))+#, linewidth=N))+
+    scale_color_viridis_c()
+    #coord_sf(xlim=c(85,243), ylim=c(70,248))
+ e1 + facet_grid(year~replicate_id)
+```
+
+# PopDyn
+
+```{r fig.popdyn, include=T}
+rec<- read.csv("C:/LEHOUX/Maquereau/iml-mackerel/00.0_model/csv/2024/rec.csv") %>%  filter(year >=1999) %>%  rename(Recruitment= Estimate)
+
+recr %>% ggplot(aes(x= year, y=Recruitment))+geom_boxplot(aes(groups=as.factor(year)))+
+  scale_x_continuous(name="Year", breaks=seq(2000,2022,2)) +
+  geom_line(data=rec, aes(x=year, y=Recruitment *10^4), col="red") #just to scale not true numbers. more die during the winter
+
+ssb_eval<- read.csv("C:/LEHOUX/Maquereau/iml-mackerel/00.0_model/csv/2024/ssb.csv") %>%  filter(year >=1999) %>%  rename(SSB= Estimate)
+
+ ssb %>% ggplot(aes(x= year, y=SSB/1000))+geom_boxplot(aes(groups=as.factor(year)))+#g to tonnes
+  scale_x_continuous(name="Year", breaks=seq(2000,2022,2)) +
+  geom_line(data=ssb_eval, aes(x=year, y=SSB), col="red") 
+
+ left_join(recr, ssb) %>%  ggplot(aes(y=Recruitment, x=SSB)) +geom_point()
+ 
+ Kn %>%  ggplot(aes(x=week, y=year, fill=Kn)) +geom_tile() + scale_fill_viridis_c(option="turbo")
+ 
+ Knall %>%  ggplot(aes(x=year, y=Kn)) +geom_line() +
+  scale_x_continuous(name="Year", breaks=seq(2000,2022,2))
+
+ 
+  waa %>% filter(fage>=1) %>%  ggplot(aes(x=year, y=weight, col=as.factor(fage))) +geom_point() +geom_smooth()+
+  scale_x_continuous(name="Year", breaks=seq(2000,2022,2)) +scale_color_viridis_d()
+
+ laa %>% filter(fage>=1) %>%  ggplot(aes(x=year, y=length, col=as.factor(fage))) +geom_point() +geom_smooth()+
+  scale_x_continuous(name="Year", breaks=seq(2000,2022,2)) +scale_color_viridis_d()
+ 
+```
+
+
+# Habitat use
+ 
+```{r fig.popdyn2, include=T}
+fish_region %>% filter(year %in% c(2001, 2010, 2022)) %>% 
+  ggplot(aes(x=as.factor(week), y=value, fill=name))+
+  geom_bar(stat="identity") +
+  facet_grid(year~replicate_id) +scale_fill_viridis_d()+
+  scale_x_discrete(name="Week", breaks=seq(5,50,5)) 
+```
+
+# Virtual ecologist
+
+```{r fig.virtual.eco, include=T}
+allTEP %>% ggplot(aes(x=TEP.eval/10^9, y=virtual.TEP/10^9, col=year)) +geom_point() +
+  scale_y_continuous(trans="log10p1", breaks=c(10,100,200,300)) +
+  scale_x_continuous(trans="log10p1", breaks=c(10^4,10^5)) +
+  geom_smooth(method="lm")+stat_poly_eq(aes(label = paste(after_stat(eq.label), 
+                                                          after_stat(rr.label), 
+                                                          sep = "~")),
+                                        formula = y ~ x, 
+                                        parse = TRUE,
+                                        size = 3) +
+  scale_color_viridis_c()
+#report catch at age (F)
+```
+
+
+```{r}
+knitr::knit_exit()
+```
+
