@@ -4,7 +4,7 @@ proj=32198 # projection for distance
 r<- readRDS("data/polygons/reference_raster.RDS")
 
 #canadian waters
-can<- read_sf("C:/LEHOUX/Projects/Github/zoo_transbound/data/polygons/canada_atlantic_polygon_areas.shp")
+can<- read_sf("data/polygons/canada_atlantic_polygon_areas.shp")
 can<- can %>%  st_transform(proj)
 
 makeLong <- function(x) paste0(-x, "\u00b0O") # \u00b0 is the Unicode degree symbol
@@ -20,7 +20,7 @@ basemap <-  ggplot() +
   coord_sf(xlim=c(-80,-46), ylim=c(35,60)) + #scale_y_continuous(breaks=c(46,47,48,49))+
   basetheme + xlab("Longitude")+ylab("Latitude")
 
-
+if(file.exists("data/glorys/static/GLO-MFC_001_030_mask_bathy.nc")){ #not done on remote
 bathy<- read_ncdf("data/glorys/static/GLO-MFC_001_030_mask_bathy.nc", var="deptho") %>%  
   filter(longitude > -80, longitude < -40, latitude >40, latitude <60)
 bathy[is.na(bathy)] <- -1000
@@ -40,4 +40,5 @@ necw<- world2raster(raster2world(bathy.r)) %>%
   st_as_stars()  %>% st_as_sf() %>% dplyr::select(-layer) %>%  st_union()
 write_rds(necw, paste0("data/polygons/netlogo_basemap",model_res,"_km.RDS"))
 rm(model_res)
+}
 }
