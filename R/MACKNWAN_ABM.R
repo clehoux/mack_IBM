@@ -161,7 +161,7 @@ run_sim_ibm <- function(replicate_id, my.year, model_res, time_step, barrier, d.
                                         seaworld=seaworld, 
                                         radius=radius,
                                         prob_moving=prob_moving,
-                                        model_res=model_res)
+                                        model_res=model_res, param=param)
     if(!barrier) radius_to_keep =radius
     # feeding
     whos.df= of(agents=fish, var=c("who", "xcor", "ycor")) %>%  as.data.frame()

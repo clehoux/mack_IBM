@@ -7,7 +7,7 @@ source("R/extract_time_series.R")
 # Configuration
 nReplicate <- 3
 years <-1999:2022
-simu.name = "simu6"
+simu.name = "simu9"
 if(dir.exists(paste0("results/", simu.name))){stop("folder already exists")
   }else{
 dir.create(paste0("results/", simu.name))
@@ -25,7 +25,7 @@ runparams <- expand.grid(
   d.d. = TRUE,
   prob_moving = 0.05,#,#, #,#0.1=PROBABILITY OF MOVING OF 90%
   param_to_modify = "h",
-  percent_change= 100
+  percent_change= 300
 )
 
 params_list <- split(runparams, seq(nrow(runparams)))
@@ -37,12 +37,15 @@ handlers(global = TRUE)
 cat("Lancement de", nReplicate, "réplicats en parallèle...\n")
 start_time <- Sys.time()
 
-results <- future_map(
-  params_list,
-  ~do.call(run_sim_ibm, as.list(.x)),
-  .progress = TRUE,
-  .options = furrr_options(seed = 123)
-)
+# suppressMessages() silences messages but keeps warnings visible
+results <- suppressMessages({
+  future_map(
+    params_list,
+    ~do.call(run_sim_ibm, as.list(.x)),
+    .progress = TRUE,
+    .options = furrr_options(seed = 123)
+  )
+})
 
 elapsed <- Sys.time() - start_time
 cat("\n✓ Simulation terminée en", 

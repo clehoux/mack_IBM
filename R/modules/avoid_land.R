@@ -5,12 +5,13 @@ find_next_position <- function(lwho,
                                radius_path,    
                                seamap,       
                                tseamap,
-                               model_res) {
+                               model_res,
+                               param) {
   path0 <- radius_path %>% filter(who == lwho)
     if (nrow(path0) == 0) return(NULL)
   max.dist <- length_to_distance(
     turtle = turtle(fish, who = lwho),
-    param = paramInit(time_step = time_step),
+    param = param,
     grid.resolution=model_res
   ) * time_step 
   
@@ -68,7 +69,7 @@ avoid_land <-  function(fish,
                         seaworld, 
                         radius,
                         prob_moving,
-                        model_res){
+                        model_res, param){
 #for paths: find smallest distance avoiding land
 seamap=world2raster(seaworld)[[1]]
 #this turns all landmass to missing
@@ -96,7 +97,8 @@ to_keep_all <- map_df(
     radius_path = radius_path,
     seamap = seamap,
     tseamap = tseamap,
-    model_res=model_res
+    model_res=model_res,
+    param=param
   )
  )
 

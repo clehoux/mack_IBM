@@ -53,8 +53,15 @@ egg_total_region %>% ggplot(aes(fill=region, x=year,  y=TEP*10^-9))+
 ```
 
 ```{r fig.eggs2, include=T, fig.width=8, fig.height=5}
-load("C:/LEHOUX/Maquereau/iml-mackerel/03.0_egg-index/results/2024/spawning/predicted_propspawn_doy2024.RData")
-spawn<- read.delim("C:/LEHOUX/Maquereau/iml-mackerel/03.0_egg-index/results/2024/spawning/table_nlmeAR_2024.txt")
+ url <- "https://github.com/iml-mackerel/03.0_egg-index/blob/main/results/2024/spawning/predicted_propspawn_doy2024.RData"
+  raw_url <- gsub("/blob/", "/raw/", url)
+
+load(url(raw_url))
+
+url <- "https://github.com/iml-mackerel/03.0_egg-index/blob/main/results/2024/spawning/table_nlmeAR_2024.txt"
+  raw_url <- gsub("/blob/", "/raw/", url)
+
+spawn<- read.delim(url(raw_url))
 spawn<-spawn %>%  dplyr::select(year, xmid, doymin70, doymax70) %>%  rename(doy=xmid) %>%  filter(year>=1999)
 
 assess<- nlme.fixpredsAR1 %>% dplyr::select(year, doy, prob) %>%  filter(year>=1999)
@@ -95,13 +102,18 @@ egg.sf <-  egg.df %>%  as.data.frame() %>%  st_as_sf(coords=c("xcor", "ycor")) %
 # PopDyn
 
 ```{r fig.popdyn, include=T}
-rec<- read.csv("C:/LEHOUX/Maquereau/iml-mackerel/00.0_model/csv/2024/rec.csv") %>%  filter(year >=1999) %>%  rename(Recruitment= Estimate)
+
+url <- "https://github.com/iml-mackerel/00.0_model/blob/caro/csv/2024/rec.csv"
+  raw_url <- gsub("/blob/", "/raw/", url)
+rec<- read.csv(url(raw_url)) %>%  filter(year >=1999) %>%  rename(Recruitment= Estimate)
 
 recr %>% ggplot(aes(x= year, y=Recruitment))+geom_boxplot(aes(groups=as.factor(year)))+
   scale_x_continuous(name="Year", breaks=seq(2000,2022,2)) +
   geom_line(data=rec, aes(x=year, y=Recruitment *10^4), col="red") #just to scale not true numbers. more die during the winter
+url <- "https://github.com/iml-mackerel/00.0_model/blob/caro/csv/2024/ssb.csv"
+  raw_url <- gsub("/blob/", "/raw/", url)
 
-ssb_eval<- read.csv("C:/LEHOUX/Maquereau/iml-mackerel/00.0_model/csv/2024/ssb.csv") %>%  filter(year >=1999) %>%  rename(SSB= Estimate)
+ssb_eval<- read.csv(url(raw_url)) %>%  filter(year >=1999) %>%  rename(SSB= Estimate)
 
  ssb %>% ggplot(aes(x= year, y=SSB/1000))+geom_boxplot(aes(groups=as.factor(year)))+#g to tonnes
   scale_x_continuous(name="Year", breaks=seq(2000,2022,2)) +

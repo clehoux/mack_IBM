@@ -30,6 +30,6 @@ source("R/ABM_furrr.R")
 
 #####RESULTS#####
 source("R/Rmd/render_time_series.R")
-render_time_series(simu.name="simu5")
 render_time_series(simu.name="simu6")
 render_time_series(simu.name="simu7")
+render_time_series(simu.name="simu8")
