@@ -33,6 +33,8 @@ b.lw=coefficients(nls_lw)[[2]],
 # Spawning coefficient
 a.f = 8.80, # normalizing constant for fecundity Lockwood 1981
 b.f =  3.02, #scaling exponent for fecundity Lockwood
+a.f2 = -2.05, # normalizing constant for fecundity Pelletier 1986
+b.f2 =  3.02, #scaling exponent for fecundity Pelletier 1986
 egg.mass= 0.001, #(Sibly et al. 2015)
 nbatch= 8,
 Bint =7,

@@ -8,7 +8,8 @@ spawning <- function(fish.df, time, param, time_step){
   state= if_else(spawning_prob==1, 3, state),
   maintenance.energy = energy.reserve * 0.1,
   R = R + energy.reserve - (maintenance.energy * time_step),
-  potential.fecundity = param$a.f * (L^param$b.f),
+  #potential.fecundity = param$a.f * (L^param$b.f), #lockwood
+  potential.fecundity =10^(param$a.f2 + (b.f2 *log10(L*10))), #length in mm in pelletier
   max.R = potential.fecundity * param$egg.mass * (param$Ef + param$Fs),
   max.batch.R = max.R / param$nbatch / (param$Bint / time_step),
   realised.fecundity =(R / (max.batch.R * (param$Bint / time_step))) * potential.fecundity, #number of eggs

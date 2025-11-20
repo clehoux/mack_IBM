@@ -1,0 +1,40 @@
+---
+title: "Check fecundity"
+author: "Caroline Lehoux"
+date: "`r Sys.Date()`"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+ source("R/utils/loadpackages.R")
+  source("R/utils/movement.R")
+  source("R/utils/parameters.R")
+
+```
+
+
+```{r runh}
+my.years=1999:2022
+time_step=7
+param<- paramInit(time_step)
+
+  laa <- read_csv("../../iml-mackerel/12.0_length-at-age/csv/laa_2022_base_cv1shrink0.csv")
+laay = laa %>% pivot_longer(2:11, names_to="age", values_to="length") 
+   faa <- read_csv("../../iml-mackerel/05.0_fecundity-at-age/csv/2024/faa_2024_base_cv1shrink0.5.csv")
+faay = faa %>% pivot_longer(2:11, names_to="age", values_to="fecundity (Lehoux et al. 2025") 
+df.assess<- left_join(laay, faay)
+
+df<- df.assess %>%  mutate(lockwood.fecundity = param$a.f * (length^param$b.f),
+                           pelletier.fecundity = 10^(-2.05 + (3.02 *log10(length*10))))
+
+
+```
+
+
+```{r plot, fig.width=8, fig.height=4}
+df %>% dplyr::select(-length) %>%  mutate(age= fct_relevel(age, "10", after=10)) %>%  pivot_longer(3:5) %>% 
+  ggplot(aes(x=year, col=age, y=value, linetype=name), lidewidth=2)+geom_line() +ylab("Fecundity") +
+  labs(guide="") + scale_color_viridis_d(name="") +scale_linetype_manual(name="", values=c(1,5,3))
+
+```
